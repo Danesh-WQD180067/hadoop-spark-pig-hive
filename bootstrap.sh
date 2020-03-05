@@ -21,6 +21,7 @@ service ssh start
 nohup $HADOOP_PREFIX/sbin/start-dfs.sh &>/dev/null &
 nohup $HADOOP_PREFIX/sbin/start-yarn.sh &>/dev/null &
 nohup $SPARK_PREFIX/sbin/start-all.sh &>/dev/null &
+nohup rstudio-server start &
 echo "Waiting for hdfs to exit from safemode"
 
 while ! nc -z localhost 9000; do
