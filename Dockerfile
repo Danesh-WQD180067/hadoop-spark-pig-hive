@@ -28,7 +28,7 @@ ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
 ENV PATH $JAVA_HOME/bin:$PATH
 
 # hadoop
-RUN curl -s https://downloads.apache.org/hadoop/common/hadoop-2.10.0/hadoop-2.10.0.tar.gz | tar -xz -C /usr/local/
+RUN curl -s https://downloads.apache.org/hadoop/common/hadoop-2.10.0/hadoop-2.10.0.tar.gz | tar -xz -o -C /usr/local/
 RUN cd /usr/local && ln -s ./hadoop-2.10.0 hadoop
 
 ENV HADOOP_PREFIX /usr/local/hadoop
@@ -82,16 +82,17 @@ RUN service ssh start && $HADOOP_PREFIX/etc/hadoop/hadoop-env.sh && $HADOOP_PREF
 ENV PATH /usr/local/hadoop/bin:$PATH
 
 # pig
-RUN curl -s https://downloads.apache.org/pig/pig-0.17.0/pig-0.17.0.tar.gz | tar -xz -C /usr/local
-ENV PIG_HOME /usr/local/pig-0.17.0/
+RUN curl -s https://downloads.apache.org/pig/pig-0.17.0/pig-0.17.0.tar.gz | tar -xz -o -C /usr/local
+ENV PIG_HOME /usr/local/pig-0.17.0
 RUN ln -s $PIG_HOME /usr/local/pig
 ENV PATH $PATH:$PIG_HOME/bin
 
 # hive
-RUN curl -s https://downloads.apache.org/hive/hive-2.3.6/apache-hive-2.3.6-bin.tar.gz  | tar -xz -C /usr/local
-ENV HIVE_HOME /usr/local/apache-hive-2.3.6-bin/
+RUN curl -s https://downloads.apache.org/hive/hive-2.3.6/apache-hive-2.3.6-bin.tar.gz  | tar -xz -o -C /usr/local
+ENV HIVE_HOME /usr/local/apache-hive-2.3.6-bin
 RUN ln -s $HIVE_HOME /usr/local/hive
 ENV PATH $PATH:$HIVE_HOME/bin
+ADD hive-site.xml $HIVE_HOME/conf/hive-site.xml
 
 RUN $HIVE_HOME/bin/schematool -dbType derby -initSchema
 
@@ -110,33 +111,19 @@ RUN service ssh start \
     && nohup $HADOOP_PREFIX/sbin/stop-dfs.sh &>/dev/null & \
     nohup $HADOOP_PREFIX/sbin/stop-yarn.sh &>/dev/null &
 
-#mr job
-RUN apt-get install -y python-pip \
-    && pip install mrjob
 
 # spark
-RUN curl -s https://archive.apache.org/dist/spark/spark-2.4.5/spark-2.4.5-bin-without-hadoop-scala-2.12.tgz | tar -xz -C /usr/local
-ENV SPARK_HOME /usr/local/spark-2.4.5-bin-without-hadoop-scala-2.12/
+RUN curl -s https://archive.apache.org/dist/spark/spark-2.4.5/spark-2.4.5-bin-without-hadoop-scala-2.12.tgz | tar -xz -o -C /usr/local
+ENV SPARK_HOME /usr/local/spark-2.4.5-bin-without-hadoop-scala-2.12
 RUN ln -s $SPARK_HOME /usr/local/spark
 ENV PATH $PATH:$SPARK_HOME/bin
 ADD spark-env.sh $SPARK_HOME/conf/spark-env.sh
 
-# Install R
-RUN echo "deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/" >> /etc/apt/sources.list
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
-RUN apt-get -y update
-RUN apt-get -y install r-base
+# Fix Spark Jars
+RUN wget https://repo1.maven.org/maven2/org/apache/spark/spark-hive_2.12/2.4.5/spark-hive_2.12-2.4.5.jar -P /usr/local/spark/jars/
 
-# Install RStudio Server
-RUN apt-get -y install gdebi-core
-RUN wget https://download2.rstudio.org/server/bionic/amd64/rstudio-server-1.2.5033-amd64.deb
-RUN gdebi --n rstudio-server-1.2.5033-amd64.deb
-RUN rstudio-server start
 
-# Create admin account
-RUN useradd -ms /bin/bash admin
-RUN usermod -aG sudo admin
-RUN echo "admin:admin" | chpasswd
+
 
 ADD bootstrap.sh /etc/bootstrap.sh
 RUN chown root:root /etc/bootstrap.sh
@@ -144,9 +131,16 @@ RUN chmod 700 /etc/bootstrap.sh
 
 ENV BOOTSTRAP /etc/bootstrap.sh
 
-RUN echo "export PATH=$PATH" > /etc/environment
+RUN echo "PATH=$PATH" > /etc/environment
 RUN echo "export PATH=$PATH" > /etc/profile.d/hadoop-paths.sh
+
+# Hive Metastore Fix
+RUN chmod -R 777 /derby.log
+RUN chmod -R 777 /metastore_db
+
+# Cleanup
+RUN apt-get clean
 
 ENTRYPOINT ["/etc/bootstrap.sh", "-d"]
 
-EXPOSE 8031 8030 8032 8088 8033 40661 8040 13562 8042 50070 9000 50010 50075 50020 50090 8080 8081 8787
+EXPOSE 8031 8030 8032 8088 8033 40661 8040 13562 8042 50070 9000 50010 50075 50020 50090 8080 8081 8000 10000 10002

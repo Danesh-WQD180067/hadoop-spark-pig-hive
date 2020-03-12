@@ -20,8 +20,16 @@ sed s/HOSTNAME/$HOSTNAME/ /usr/local/hadoop/etc/hadoop/core-site.xml.template > 
 service ssh start
 nohup $HADOOP_PREFIX/sbin/start-dfs.sh &>/dev/null &
 nohup $HADOOP_PREFIX/sbin/start-yarn.sh &>/dev/null &
+
+# Prepare xml for Spark
+cp $HIVE_HOME/conf/hive-site.xml $SPARK_HOME/conf/hive-site.xml
+cp $HADOOP_HOME/etc/hadoop/core-site.xml $SPARK_HOME/conf/core-site.xml
+cp $HADOOP_HOME/etc/hadoop/hdfs-site.xml $SPARK_HOME/conf/hdfs-site.xml
+
+nohup $HADOOP_PREFIX/sbin/start-all.sh &>/dev/null &
 nohup $SPARK_PREFIX/sbin/start-all.sh &>/dev/null &
-nohup rstudio-server start &
+nohup $HIVE_HOME/bin/hive --service hiveserver2 &>/dev/null &
+
 echo "Waiting for hdfs to exit from safemode"
 
 while ! nc -z localhost 9000; do
@@ -29,6 +37,7 @@ while ! nc -z localhost 9000; do
 done
 
 hdfs dfsadmin -safemode wait
+hadoop fs -chmod -R 777 /
 #
 # $HADOOP_PREFIX/bin/hdfs dfs -mkdir -p /user/hive
 # $HADOOP_PREFIX/bin/hdfs dfs -mkdir -p /user/hive/warehouse
