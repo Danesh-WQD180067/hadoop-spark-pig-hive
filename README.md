@@ -24,7 +24,7 @@ docker pull wqd180067/docker-bigdata:release-1.2
 In order to use the Docker image you have just build or pulled use:
 
 ```
-docker run -it -p 10000:10000 -p 10002:10002 -p 50070:50070 -p 8088:8088 -p 8080:8080 wqd180067/docker-bigdata:release-1.2 bash
+docker run -it -h localhost -p 10000:10000 -p 10002:10002 -p 50070:50070 -p 50075:50075 -p 8088:8088 -p 8080:8080 wqd180067/docker-bigdata:release-1.2 bash
 ```
 
 
